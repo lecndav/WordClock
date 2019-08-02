@@ -1,12 +1,10 @@
 #include <ESP8266WiFi.h>          //ESP8266 Core WiFi Library (you most likely already have this in your sketch)
 #include <WiFiManager.h>          //https://github.com/tzapu/WiFiManager WiFi Configuration Magic
-#include <NTPClient.h>
-#include <WiFiUdp.h>
+#include <time.h>
 #include <Thread.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
 #include <ESP8266HTTPUpdateServer.h>
-#include <PubSubClient.h>
 #include <vector>
 #include "wordclock.h"
 #include <FastLED.h>
@@ -26,13 +24,7 @@ Thread t_updateTime = Thread();
 Thread t_updater = Thread();
 //
 
-// NTP Client
-WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, "at.pool.ntp.org");
-String formattedTime;
-String formattedDate;
-String dayStamp;
-String timeStamp;
+//
 int old_minute = 61;
 //
 
@@ -43,11 +35,6 @@ int lightIntensity = 100;
 ESP8266WebServer httpServer(80);
 ESP8266HTTPUpdateServer httpUpdater;
 const char* host = "wordclock";
-
-// MQTT
-WiFiClient wifiClient;
-const char* MQTT_BROKER = "192.168.0.24";
-PubSubClient mqttClient(wifiClient);
 
 std::vector<int> getHourLEDs(int h) {
   switch(h) {
@@ -81,9 +68,18 @@ std::vector<int> getHourLEDs(int h) {
 void setup() {
   Serial.begin(9600);
   Serial.println("Starting...");
+
+  setenv("TZ", "CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00", 1);
+  tzset();
+  configTime(0, 0, "at.pool.ntp.org");
   
   FastLED.addLeds<WS2812B, DATA_PIN, RGB>(ledstrip, NUM_LEDS);
   FastLED.setBrightness(255);
+
+  for(int i = 0; i < NUM_LEDS; i++) {
+    ledstrip[i] = CRGB::White;
+  }
+  
   startUpLed1();
   startUpLed2();
   
@@ -96,12 +92,6 @@ void setup() {
   httpServer.begin();
 
   MDNS.addService("http", "tcp", 80);
-
-  mqttClient.setServer(MQTT_BROKER, 1883);
-  
-  // Initialize a NTPClient to get time
-  timeClient.begin();
-  timeClient.setTimeOffset(3600);
 
   t_lightIntensity.onRun(getLightIntensity);
   t_lightIntensity.setInterval(200);
@@ -124,11 +114,6 @@ void loop() {
     t_updater.run();
   }
 
-//  if (!mqttClient.connected()) {
-//    mqttClient.connect("ESP8266Client");
-//  }
-//  mqttClient.loop();
-
   delay(20);
 }
 
@@ -139,54 +124,47 @@ void updater() {
 
 void getLightIntensity() {
   int i_light = analogRead(A0);
-  lightIntensity = map(i_light, 0, 1023, 0, 255);
-//  FastLED.setBrightness(constrain(lightIntensity, MIN_BRIGHTNESS, MAX_BRIGHTNESS));
-  FastLED.setBrightness(220);
+
+  if (i_light <= 10) {
+    lightIntensity = 40;
+  }
+  else if (i_light > 10 && i_light <= 40) {
+    lightIntensity = 100;
+  }
+  else if (i_light > 40 && i_light <= 70) {
+    lightIntensity = 140;
+  }
+  else if (i_light > 70 && i_light <= 80) {
+    lightIntensity = 160;
+  }
+  else if (i_light > 80 && i_light <= 100) {
+    lightIntensity = 190;
+  }
+  else if (i_light > 100 && i_light <= 150) {
+    lightIntensity = 210;
+  }
+  else {
+    lightIntensity = 240;
+  }
+  
+  FastLED.setBrightness(constrain(lightIntensity, MIN_BRIGHTNESS, MAX_BRIGHTNESS));
   FastLED.show();
   Serial.print("Lichtintensität: ");
-  Serial.println(lightIntensity);
-//  char buf[4];
-//  String(i_light).toCharArray(buf, 4);
-//  mqttClient.publish("/word_clock/light", buf);
+  Serial.println(i_light);
 }
 
 void updateTime() {
-  while(!timeClient.update()) {
-    Serial.println("waiting for time...");
-    timeClient.forceUpdate();
-  }
-
-  formattedDate = timeClient.getFormattedDate();
-  int splitT = formattedDate.indexOf("T");
-  dayStamp = formattedDate.substring(0, splitT);
-  timeStamp = formattedDate.substring(splitT+1, formattedDate.length()-1);
-  String hour = timeStamp.substring(0, 2);
-  String minute = timeStamp.substring(3, 5);
-  String year = dayStamp.substring(0, 4);
-  String month = dayStamp.substring(5, 7);
-  String day = dayStamp.substring(8, 10);
-  
-  int y = atoi(year.c_str());
-  int mo = atoi(month.c_str());
-  int d = atoi(day.c_str());
-  int m = atoi(minute.c_str());
-  int h = atoi(hour.c_str());
-
-  if (summerTime(y, mo, d, h, 1)) {
-    h += 1;
-  }
-
+  time_t now;
+  struct tm * timeinfo;
+  time(&now);
+  timeinfo = localtime(&now);
+  int m = timeinfo->tm_min;
+  int h = timeinfo->tm_hour;
   
   Serial.print("HOUR: ");
   Serial.println(h);
   Serial.print("MINUTE: ");
-  Serial.println(minute);
-  Serial.print("YEAR: ");
-  Serial.println(year);
-  Serial.print("MONTH: ");
-  Serial.println(month);
-  Serial.print("DAY: ");
-  Serial.println(day);
+  Serial.println(m);
 
   // check if a minute is over
   if(m != old_minute) {
@@ -207,11 +185,6 @@ void processTime(int h, int m) {
   }
   
   std::vector<int> leds;
-
-  Serial.print("hour: ");
-  Serial.println(h);
-  Serial.print("min: ");
-  Serial.println(m - (m % 5));
   leds.insert(leds.end(), esist.begin(), esist.end());
 
   std::vector<int> hourLeds = getHourLEDs(h);
@@ -346,31 +319,4 @@ void startUpLed2() {
     ledstrip[*led] = CRGB::White;
   }
   FastLED.show();
-  
-}
-
-boolean summerTime(int year, byte month, byte day, byte hour, byte tzHours)
-// input parameters: "normal time" for year, month, day, hour and tzHours (0=UTC, 1=MEZ)
-// return value: returns true during Daylight Saving Time, false otherwise
-{ 
-  if (month<3 || month>10) return false; // keine Sommerzeit in Jan, Feb, Nov, Dez
-  if (month>3 && month<10) return true; // Sommerzeit in Apr, Mai, Jun, Jul, Aug, Sep
-  if (month==3 && (hour + 24 * day)>=(1 + tzHours + 24*(31 - (5 * year /4 + 4) % 7)) || month==10 && (hour + 24 * day)<(1 + tzHours + 24*(31 - (5 * year /4 + 1) % 7))) 
-    return true; 
-  else 
-    return false;
-}
-
-void showError() {
-  for(int i = 0; i < NUM_LEDS; i++) {
-    ledstrip[i] = CRGB::Black;
-  }
-  
-  FastLED.setBrightness(constrain(lightIntensity, MIN_BRIGHTNESS, MAX_BRIGHTNESS));
-  for(std::vector<int>::iterator led = mins.begin(); led != mins.end(); ++led) {
-    ledstrip[*led] = CRGB::Green;
-  }
-
-  FastLED.show();
-  delay(15000);
 }
