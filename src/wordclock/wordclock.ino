@@ -289,23 +289,6 @@ void startUpLed1() {
     FastLED.show();
     delay(50);
   }
-  for(int i = 0; i < 4; i++) {
-    for(int i = 0; i < NUM_LEDS; i++) {
-      ledstrip[i] = CRGB::White;
-    }
-    FastLED.setBrightness(255);
-    FastLED.show();
-    for(int i = 80; i > 20; i--) {
-      FastLED.setBrightness(i);
-      FastLED.show();
-      delay(15);
-    }
-    for(int i = 0; i < NUM_LEDS; i++) {
-      ledstrip[i] = CRGB::Black;
-    }
-    FastLED.show();
-    delay(200);  
-  }
   delay(1000);
 }
 
