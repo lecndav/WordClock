@@ -30,6 +30,8 @@ int old_minute = 61;
 
 // Photo resistor
 int lightIntensity = 100;
+int lightVal = 0;
+int lightCounter = 0;
 
 // WebUpdater
 ESP8266WebServer httpServer(80);
@@ -124,33 +126,38 @@ void updater() {
 
 void getLightIntensity() {
   int i_light = analogRead(A0);
-
-  if (i_light <= 10) {
-    lightIntensity = 40;
-  }
-  else if (i_light > 10 && i_light <= 40) {
-    lightIntensity = 100;
-  }
-  else if (i_light > 40 && i_light <= 70) {
-    lightIntensity = 140;
-  }
-  else if (i_light > 70 && i_light <= 80) {
-    lightIntensity = 160;
-  }
-  else if (i_light > 80 && i_light <= 100) {
-    lightIntensity = 190;
-  }
-  else if (i_light > 100 && i_light <= 150) {
-    lightIntensity = 210;
-  }
-  else {
-    lightIntensity = 240;
-  }
+  lightVal += i_light;
   
-  FastLED.setBrightness(constrain(lightIntensity, MIN_BRIGHTNESS, MAX_BRIGHTNESS));
-  FastLED.show();
-  Serial.print("Lichtintensität: ");
-  Serial.println(i_light);
+  if (lightCounter == 14) {
+    lightVal = lightVal / 15;
+    lightCounter = 0;
+
+    if (lightVal <= 8) {
+      lightIntensity = 40;
+    }
+    else if (lightVal > 13 && lightVal <= 33) {
+      lightIntensity = 150;
+    }
+    else if (lightVal > 47 && lightVal <= 63) {
+      lightIntensity = 200;
+    }
+    else if (lightVal > 77 && lightVal <= 73) {
+      lightIntensity = 240;
+    }
+    else if (lightVal > 87) {
+      lightIntensity = 240;
+    }
+    else {
+      lightIntensity = lightIntensity;
+    }
+  
+    FastLED.setBrightness(constrain(lightIntensity, MIN_BRIGHTNESS, MAX_BRIGHTNESS));
+    FastLED.show();
+    Serial.print("Lichtintensität: ");
+    Serial.println(lightVal);
+  }
+
+  lightCounter++;
 }
 
 void updateTime() {
