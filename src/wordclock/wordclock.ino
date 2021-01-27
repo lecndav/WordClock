@@ -1,3 +1,5 @@
+#include <Adafruit_NeoPixel.h>
+
 #include <ESP8266WiFi.h>          //ESP8266 Core WiFi Library (you most likely already have this in your sketch)
 #include <WiFiManager.h>          //https://github.com/tzapu/WiFiManager WiFi Configuration Magic
 #include <time.h>
@@ -7,15 +9,15 @@
 #include <ESP8266HTTPUpdateServer.h>
 #include <vector>
 #include "wordclock.h"
-#include <FastLED.h>
 
-
-// Fast LED
-#define DATA_PIN 7
+// LED
+#define DATA_PIN D7
 #define NUM_LEDS 114
 #define MAX_BRIGHTNESS 255
 #define MIN_BRIGHTNESS 10
-CRGB ledstrip[NUM_LEDS];
+#define DELAYVAL 500 // Time (in milliseconds) to pause between pixels
+
+Adafruit_NeoPixel ledstrip(NUM_LEDS, DATA_PIN, NEO_RGBW + NEO_KHZ800);
 //
 
 // Threads
@@ -71,17 +73,20 @@ void setup() {
   Serial.begin(9600);
   Serial.println("Starting...");
 
+  configTime(0, 0, "at.pool.ntp.org");
   setenv("TZ", "CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00", 1);
   tzset();
-  configTime(0, 0, "at.pool.ntp.org");
-  
-  FastLED.addLeds<WS2812B, DATA_PIN, RGB>(ledstrip, NUM_LEDS);
-  FastLED.setBrightness(255);
+  Serial.println("here...");
+  ledstrip.begin();
+  Serial.println("here1...");
+  ledstrip.setBrightness(100);
 
+  Serial.println("here2...");
   for(int i = 0; i < NUM_LEDS; i++) {
-    ledstrip[i] = CRGB::White;
+    ledstrip.setPixelColor(i, ledstrip.Color(0, 0, 0, 255));
   }
   
+  Serial.println("here3...");
   startUpLed1();
   startUpLed2();
   
@@ -151,8 +156,8 @@ void getLightIntensity() {
       lightIntensity = lightIntensity;
     }
   
-    FastLED.setBrightness(constrain(lightIntensity, MIN_BRIGHTNESS, MAX_BRIGHTNESS));
-    FastLED.show();
+    ledstrip.setBrightness(constrain(lightIntensity, MIN_BRIGHTNESS, MAX_BRIGHTNESS));
+    ledstrip.show();
     Serial.print("Lichtintensität: ");
     Serial.println(lightVal);
   }
@@ -273,40 +278,40 @@ void processTime(int h, int m) {
 void controllLEDs(std::vector<int> leds) {
   // reset all LEDs
   for(int i = 0; i < NUM_LEDS; i++) {
-    ledstrip[i] = CRGB::Black;
+    ledstrip.setPixelColor(i, ledstrip.Color(0, 0, 0, 0));
   }
   
-  FastLED.setBrightness(constrain(lightIntensity, MIN_BRIGHTNESS, MAX_BRIGHTNESS));
+  ledstrip.setBrightness(constrain(lightIntensity, MIN_BRIGHTNESS, MAX_BRIGHTNESS));
   for(std::vector<int>::iterator led = leds.begin(); led != leds.end(); ++led) {
-    ledstrip[*led] = CRGB::White;
+    ledstrip.setPixelColor(*led, ledstrip.Color(0, 0, 0, 255));
   }
 
-  FastLED.show();
+  ledstrip.show();
 }
 
 void startUpLed1() {
   for(int i = 0; i < NUM_LEDS; i++) {
-    ledstrip[i] = CRGB::Black;
+    ledstrip.setPixelColor(i, ledstrip.Color(0, 0, 0, 0));
   }
-  FastLED.show();
-  FastLED.setBrightness(255);
+  ledstrip.show();
+  ledstrip.setBrightness(255);
   for(int i = 0; i < NUM_LEDS; i++) {
-    if(i>0) ledstrip[i-1] = CRGB::Black;
-    ledstrip[i] = CRGB::White;
-    FastLED.show();
+    if(i>0) ledstrip.setPixelColor(i-1, ledstrip.Color(0, 0, 0, 0));
+    ledstrip.setPixelColor(i, ledstrip.Color(0, 0, 0, 255));
+    ledstrip.show();
     delay(50);
   }
   delay(1000);
 }
 
 void startUpLed2() {
-  FastLED.setBrightness(255);
+  ledstrip.setBrightness(255);
   for(int i = 0; i < NUM_LEDS; i++) {
-    ledstrip[i] = CRGB::Black;
+    ledstrip.setPixelColor(i, ledstrip.Color(0, 0, 0, 255));
   }
 
   for(std::vector<int>::iterator led = mins.begin(); led != mins.end(); ++led) {
-    ledstrip[*led] = CRGB::White;
+    ledstrip.setPixelColor(*led, ledstrip.Color(0, 0, 0, 255));
   }
-  FastLED.show();
+  ledstrip.show();
 }

@@ -1,8 +1,3 @@
-// #define FASTLED_ESP8266_RAW_PIN_ORDER 
-// #define FASTLED_ESP8266_NODEMCU_PIN_ORDER
-// #define FASTLED_ESP8266_D1_PIN_ORDER
-
-
 std::vector<int> esist = {109, 90, 70, 69, 50};
 
 std::vector<int> ein = {84, 75, 64};
