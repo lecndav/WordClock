@@ -83,7 +83,7 @@ void setup() {
   }
   
   startUpLed1();
-  startUpLed2();
+  //startUpLed2();
   
   WiFiManager wifiManager;
   wifiManager.autoConnect("WordClock_By_Lechner");
