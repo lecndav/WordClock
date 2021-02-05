@@ -76,9 +76,7 @@ void setup() {
   configTime(0, 0, "at.pool.ntp.org");
   setenv("TZ", "CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00", 1);
   tzset();
-  Serial.println("here...");
   ledstrip.begin();
-  Serial.println("here1...");
   ledstrip.setBrightness(100);
 
   Serial.println("here2...");
@@ -86,9 +84,7 @@ void setup() {
     ledstrip.setPixelColor(i, ledstrip.Color(0, 0, 0, 255));
   }
   
-  Serial.println("here3...");
   startUpLed1();
-  startUpLed2();
   
   WiFiManager wifiManager;
   wifiManager.autoConnect("WordClock_By_Lechner");
