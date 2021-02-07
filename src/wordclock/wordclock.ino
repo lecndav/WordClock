@@ -79,17 +79,15 @@ void setup() {
   ledstrip.begin();
   ledstrip.setBrightness(100);
 
-  Serial.println("here2...");
-  for(int i = 0; i < NUM_LEDS; i++) {
-    ledstrip.setPixelColor(i, ledstrip.Color(0, 0, 0, 255));
-  }
-  
+  ledsOff();
+
   startUpLed1();
-  
+  ledWaitForConnection();
+
   WiFiManager wifiManager;
   wifiManager.autoConnect("WordClock_By_Lechner");
   Serial.println("Got network connection");
-  
+
   MDNS.begin(host);
   httpUpdater.setup(&httpServer);
   httpServer.begin();
@@ -120,6 +118,20 @@ void loop() {
   delay(20);
 }
 
+void turnOnLed(int i) {
+  ledstrip.setPixelColor(i, ledstrip.Color(0, 0, 0, 255));
+}
+
+void turnOffLed(int i) {
+  ledstrip.setPixelColor(i, ledstrip.Color(0, 0, 0, 0));
+}
+
+void ledsOff() {
+  for(int i = 0; i < NUM_LEDS; i++) {
+    turnOffLed(i);
+  }
+}
+
 void updater() {
   httpServer.handleClient();
   MDNS.update();
@@ -128,7 +140,7 @@ void updater() {
 void getLightIntensity() {
   int i_light = analogRead(A0);
   lightVal += i_light;
-  
+
   if (lightCounter == 14) {
     lightVal = lightVal / 15;
     lightCounter = 0;
@@ -151,7 +163,7 @@ void getLightIntensity() {
     else {
       lightIntensity = lightIntensity;
     }
-  
+
     ledstrip.setBrightness(constrain(lightIntensity, MIN_BRIGHTNESS, MAX_BRIGHTNESS));
     ledstrip.show();
     Serial.print("Lichtintensität: ");
@@ -168,7 +180,7 @@ void updateTime() {
   timeinfo = localtime(&now);
   int m = timeinfo->tm_min;
   int h = timeinfo->tm_hour;
-  
+
   Serial.print("HOUR: ");
   Serial.println(h);
   Serial.print("MINUTE: ");
@@ -191,7 +203,7 @@ void processTime(int h, int m) {
   if(h1 == 0) {
     h1 = 12;
   }
-  
+
   std::vector<int> leds;
   leds.insert(leds.end(), esist.begin(), esist.end());
 
@@ -212,7 +224,7 @@ void processTime(int h, int m) {
       leds.insert(leds.end(), nach.begin(), nach.end());
       leds.insert(leds.end(), hourLeds.begin(), hourLeds.end());
       break;
-    case 10: 
+    case 10:
       leds.insert(leds.end(), zehna.begin(), zehna.end());
       leds.insert(leds.end(), nach.begin(), nach.end());
       leds.insert(leds.end(), hourLeds.begin(), hourLeds.end());
@@ -274,40 +286,33 @@ void processTime(int h, int m) {
 void controllLEDs(std::vector<int> leds) {
   // reset all LEDs
   for(int i = 0; i < NUM_LEDS; i++) {
-    ledstrip.setPixelColor(i, ledstrip.Color(0, 0, 0, 0));
+    turnOffLed(i);
   }
-  
+
   ledstrip.setBrightness(constrain(lightIntensity, MIN_BRIGHTNESS, MAX_BRIGHTNESS));
   for(std::vector<int>::iterator led = leds.begin(); led != leds.end(); ++led) {
-    ledstrip.setPixelColor(*led, ledstrip.Color(0, 0, 0, 255));
+    turnOnLed(*led);
   }
 
   ledstrip.show();
 }
 
 void startUpLed1() {
-  for(int i = 0; i < NUM_LEDS; i++) {
-    ledstrip.setPixelColor(i, ledstrip.Color(0, 0, 0, 0));
-  }
   ledstrip.show();
   ledstrip.setBrightness(255);
   for(int i = 0; i < NUM_LEDS; i++) {
-    if(i>0) ledstrip.setPixelColor(i-1, ledstrip.Color(0, 0, 0, 0));
-    ledstrip.setPixelColor(i, ledstrip.Color(0, 0, 0, 255));
+    if(i>0) turnOffLed(i-1);
+    turnOnLed(i);
     ledstrip.show();
     delay(50);
   }
+  turnOffLed(NUM_LEDS-1);
   delay(1000);
 }
 
-void startUpLed2() {
-  ledstrip.setBrightness(255);
-  for(int i = 0; i < NUM_LEDS; i++) {
-    ledstrip.setPixelColor(i, ledstrip.Color(0, 0, 0, 255));
-  }
-
+void ledWaitForConnection() {
   for(std::vector<int>::iterator led = mins.begin(); led != mins.end(); ++led) {
-    ledstrip.setPixelColor(*led, ledstrip.Color(0, 0, 0, 255));
+    turnOnLed(*led);
   }
   ledstrip.show();
 }
