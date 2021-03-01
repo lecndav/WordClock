@@ -82,6 +82,7 @@ void setup() {
   ledsOff();
 
   startUpLed1();
+  ledsOff();
   ledWaitForConnection();
 
   WiFiManager wifiManager;
@@ -146,19 +147,19 @@ void getLightIntensity() {
     lightCounter = 0;
 
     if (lightVal <= 8) {
-      lightIntensity = 40;
+      lightIntensity = 30;
     }
     else if (lightVal > 13 && lightVal <= 33) {
-      lightIntensity = 150;
+      lightIntensity = 100;
     }
     else if (lightVal > 47 && lightVal <= 63) {
-      lightIntensity = 200;
+      lightIntensity = 150;
     }
     else if (lightVal > 77 && lightVal <= 73) {
-      lightIntensity = 240;
+      lightIntensity = 200;
     }
     else if (lightVal > 87) {
-      lightIntensity = 240;
+      lightIntensity = 200;
     }
     else {
       lightIntensity = lightIntensity;
