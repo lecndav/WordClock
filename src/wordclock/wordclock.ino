@@ -150,16 +150,16 @@ void getLightIntensity() {
       lightIntensity = 30;
     }
     else if (lightVal > 13 && lightVal <= 33) {
-      lightIntensity = 100;
+      lightIntensity = 80;
     }
     else if (lightVal > 47 && lightVal <= 63) {
-      lightIntensity = 150;
+      lightIntensity = 120;
     }
     else if (lightVal > 77 && lightVal <= 73) {
-      lightIntensity = 200;
+      lightIntensity = 150;
     }
     else if (lightVal > 87) {
-      lightIntensity = 200;
+      lightIntensity = 150;
     }
     else {
       lightIntensity = lightIntensity;
